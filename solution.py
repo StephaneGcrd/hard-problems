@@ -60,6 +60,7 @@ def replace_gammas(t, assignment):
     t_new = t
     for gamma in gammas:
         t_new = t_new.replace(gamma, assignment[gamma])
+    return t_new
 
 def assignment_is_solution(ts, R_new, s):
     
