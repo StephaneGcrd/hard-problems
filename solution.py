@@ -5,29 +5,45 @@ import itertools
 def decode(content):
     lines = content.split('\n')
     k = int(lines[0])
+
+    if len(lines) <= 2+k:
+        return None # no R-sets
+
+    # Parse s
     s = lines[1]
+    if re.match("^[a-z]+$", s) is None:
+        return None # s contains invalid characters
 
-    if re.match("[a-z]+", s) is None:
-        return None
-
+    # Parse t-strings
     ts = []
     t_pattern = re.compile('^[a-zA-Z]+$')
     for t_string in lines[2:2+k]:
+
         match = re.match(t_pattern, t_string)
         if match is None:
-            continue
+            return None # t string contains invalid characters
+
         ts.append(t_string)
 
     if len(ts) != k:
-        return None
+        return None # the number of t-strings is not k
     
+    # Prase r-sets
     Rs = dict()
     R_pattern = re.compile('^([A-Z]+):([a-z]+(,[a-z]+)*)$')
     for R_string in lines[2+k:]:
+
+        if len(R_string) == 0:
+            continue
+
         match = re.match(R_pattern, R_string)
         if match is None:
-            continue
+            return None # some R-set is malformed
+        
         letter = match.group(1)
+        if letter in Rs.keys():
+            return None # there are multiple R-sets for the same gamma
+
         possibilities = match.group(2).split(',')
         Rs[letter] = possibilities
     
@@ -52,7 +68,7 @@ def reduce_instance(instance):
         rs_new = [r for r in Rs[key] if r in s]
         Rs_new[key] = rs_new
 
-    return (k, s, ts, Rs_new), gammas_removed
+    return (k, s, ts, Rs_new), gammas_removed, Rs
 
 def replace_gammas(t, assignment):
     # Replace capital letters with new assignment
@@ -102,37 +118,36 @@ def find_solution(content) -> None:
             print("NO") # malformed input
             return
     except:
-        print("NO")
+        print("NO") # malformed input
         return
 
-    Rs_old = instance[3]
-    instance, gammas_removed = reduce_instance(instance)
+    instance, gammas_removed, Rs_old = reduce_instance(instance)
     
     try:
-        assignment = find_brute_force_solution(instance)
+        assignment_solution = find_brute_force_solution(instance)
     except:
         print("NO")
         return
 
-    if assignment is None:
+    if assignment_solution is None:
         print("NO") # no solution exists
         return
 
     # Answer YES
-    for key in assignment.keys():
-        print(f"{key}:{assignment[key]}")
-    for key in gammas_removed:
-        print(f"{key}:{Rs_old[key][0]}")
+    for gamma in assignment_solution.keys():
+        print(f"{gamma}:{assignment_solution[gamma]}")
+    for gamma in gammas_removed:
+        print(f"{gamma}:{Rs_old[gamma][0]}")
 
-
-# # Read input from stdin
-# content = ""
-# for line in sys.stdin:
-#     content += line
-
-# find_solution(content)
-
-f = open("inputs/test_own.swe", "r")
-content = f.read()
+# Read input from stdin
+content = ""
+for line in sys.stdin:
+    content += line
 
 find_solution(content)
+
+# # Read input from file
+# f = open("inputs/test02.swe", "r")
+# content = f.read()
+
+# find_solution(content)
